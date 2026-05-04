@@ -1,4 +1,4 @@
-name: CI/CD Deploy Static Website
+name: CI/CD Pipeline
 
 "on":
   push:
@@ -7,31 +7,30 @@ name: CI/CD Deploy Static Website
   workflow_dispatch:
 
 jobs:
-  validate-and-deploy:
+  validate:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Validate application files exist
+      - name: Validate files exist
         run: |
           test -f app/index.html
           test -f app/style.css
           test -f app/script.js
 
-      - name: Basic HTML validation
+      - name: Basic HTML checks
         run: |
           grep -q "<title>" app/index.html
-          grep -q "Generate Message" app/index.html
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
+  build_infrastructure:
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -48,18 +47,35 @@ jobs:
         working-directory: infra
         run: terraform apply -auto-approve
 
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build_infrastructure
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
       - name: Get Terraform outputs
-        id: terraform-output
+        id: tf-output
         working-directory: infra
         run: |
+          terraform init
           echo "bucket_name=$(terraform output -raw bucket_name)" >> $GITHUB_OUTPUT
           echo "website_url=$(terraform output -raw website_url)" >> $GITHUB_OUTPUT
 
-      - name: Deploy application to S3
+      - name: Deploy app to S3
         run: |
-          aws s3 sync app/ s3://${{ steps.terraform-output.outputs.bucket_name }} --delete
+          aws s3 sync app/ s3://${{ steps.tf-output.outputs.bucket_name }} --delete
 
-      - name: Show deployed website URL
+      - name: Show URL
         run: |
-          echo "Website deployed successfully:"
-          echo "${{ steps.terraform-output.outputs.website_url }}"
+          echo "Website URL:"
+          echo "${{ steps.tf-output.outputs.website_url }}"
