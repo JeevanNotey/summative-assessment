@@ -29,6 +29,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: validate
 
+    outputs:
+      bucket_name: ${{ steps.tf-output.outputs.bucket_name }}
+      website_url: ${{ steps.tf-output.outputs.website_url }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -56,6 +60,13 @@ jobs:
         working-directory: infra
         run: terraform apply -auto-approve
 
+      - name: Get Terraform outputs
+        id: tf-output
+        working-directory: infra
+        run: |
+          echo "bucket_name=$(terraform output -raw bucket_name)" >> $GITHUB_OUTPUT
+          echo "website_url=$(terraform output -raw website_url)" >> $GITHUB_OUTPUT
+
   deploy:
     runs-on: ubuntu-latest
     needs: build_infrastructure
@@ -72,25 +83,11 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform init
-        working-directory: infra
-        run: terraform init
-
-      - name: Get Terraform outputs
-        id: tf-output
-        working-directory: infra
-        run: |
-          echo "bucket_name=$(terraform output -raw bucket_name)" >> $GITHUB_OUTPUT
-          echo "website_url=$(terraform output -raw website_url)" >> $GITHUB_OUTPUT
-
       - name: Deploy app to S3
         run: |
-          aws s3 sync app/ s3://${{ steps.tf-output.outputs.bucket_name }} --delete
+          aws s3 sync app/ s3://${{ needs.build_infrastructure.outputs.bucket_name }} --delete
 
       - name: Show deployed website URL
         run: |
           echo "Website deployed successfully:"
-          echo "${{ steps.tf-output.outputs.website_url }}"
+          echo "${{ needs.build_infrastructure.outputs.website_url }}"
