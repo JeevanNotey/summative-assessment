@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DevOps Pipeline Demo</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="card">
+    <h1>DevOps Pipeline Demo</h1>
+    <p class="subtitle">A small interactive web app deployed through a CI/CD pipeline.</p>
+
+    <label for="nameInput">Enter your name:</label>
+    <input type="text" id="nameInput" placeholder="e.g. Alex" />
+
+    <label for="roleSelect">Choose your DevOps role:</label>
+    <select id="roleSelect">
+      <option value="Developer">Developer</option>
+      <option value="QA Tester">QA Tester</option>
+      <option value="DevOps Engineer">DevOps Engineer</option>
+      <option value="Security Engineer">Security Engineer</option>
+      <option value="Site Reliability Engineer">Site Reliability Engineer</option>
+    </select>
+
+    <button onclick="generateMessage()">Generate Message</button>
+    <button class="secondary" onclick="toggleTheme()">Toggle Theme</button>
+
+    <section id="output" class="output hidden"></section>
+
+    <div class="stats">
+      <p><strong>Pipeline:</strong> GitHub Actions</p>
+      <p><strong>Infrastructure:</strong> Terraform</p>
+      <p><strong>Deployment:</strong> AWS S3</p>
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
