@@ -7,27 +7,68 @@ name: CI/CD Pipeline
   workflow_dispatch:
 
 jobs:
-  validate:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Validate application files exist
-        run: |
-          test -f app/index.html
-          test -f app/style.css
-          test -f app/script.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
 
-      - name: Basic HTML checks
-        run: |
-          grep -q "<title>" app/index.html
-          grep -q "Generate Message" app/index.html
+      - name: Install dependencies
+        run: npm install
 
-  build_infrastructure:
+      - name: Run ESLint
+        run: npm run lint
+
+  test:
     runs-on: ubuntu-latest
-    needs: validate
+    needs: lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run automated tests
+        run: npm test
+
+  security_scan:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run npm audit
+        run: npm run security
+
+  infrastructure:
+    runs-on: ubuntu-latest
+    needs: security_scan
 
     outputs:
       bucket_name: ${{ steps.tf-output.outputs.bucket_name }}
@@ -69,7 +110,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build_infrastructure
+    needs: infrastructure
 
     steps:
       - name: Checkout code
@@ -85,9 +126,9 @@ jobs:
 
       - name: Deploy app to S3
         run: |
-          aws s3 sync app/ s3://${{ needs.build_infrastructure.outputs.bucket_name }} --delete
+          aws s3 sync app/ s3://${{ needs.infrastructure.outputs.bucket_name }} --delete
 
       - name: Show deployed website URL
         run: |
           echo "Website deployed successfully:"
-          echo "${{ needs.build_infrastructure.outputs.website_url }}"
+          echo "${{ needs.infrastructure.outputs.website_url }}"
