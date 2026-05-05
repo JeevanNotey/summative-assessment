@@ -1,0 +1,14 @@
+{
+  "name": "devops-pipeline-assignment",
+  "version": "1.0.0",
+  "description": "Static web app deployed using GitHub Actions, Terraform and AWS S3",
+  "scripts": {
+    "lint": "eslint app/script.js",
+    "test": "node test.js",
+    "security": "npm audit --audit-level=high"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0"
+  }
+}
