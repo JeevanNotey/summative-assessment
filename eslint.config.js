@@ -9,8 +9,13 @@ module.exports = [
       sourceType: "script",
       globals: {
         document: "readonly",
-        Date: "readonly"
+        Date: "readonly",
+        generateMessage: "readonly",
+        toggleTheme: "readonly"
       }
+    },
+    rules: {
+      "no-unused-vars": "off"
     }
   }
 ];
